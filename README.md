@@ -1,6 +1,6 @@
 Provide a data structure to model message passing with configurable guarantees -- reliable delivery, duplicates, out-of-order, duplicates **and** out of order ("at least once").
 
-By design, all the versions of the Channels data strucures provide the same interface -- so that it's straightforward to change the messaging behavior for an algorithm and see how it behaves, merely by adjusting the Channels module included via INSTANCE.
+By design, all the versions of the Channels data strucures provide the same interface -- so that it's straightforward to change the messaging behavior for an algorithm and see how it behaves, merely by adjusting the Channels module included via EXTENDS or INSTANCE.
 
 The internal state of the various Channels data structures are designed such that, on a failure, the message history and timing can be parsed from the TLC output (which allows a timeline diagram to be written out as an SVG).
 
@@ -24,7 +24,7 @@ The key operators that work on Channels are:
  choose one of these messages, non-deterministically, see example below.
 
  - `MarkMessageReceived(channels, receiver, msg, receiverState)` - update
- channels to show a specific (wrapped) message was received, passing in a `receiverState` to annotate the timeline diagram. Note that the client process should always call this, after receiving a message. Specifically, even if you wish to see duplicates, you should still call `MarkMessageReceived` -- the Channels data structure will take care of ensuring that the proper numnber of duplicates are still generated.
+ channels to show a specific (wrapped) message was received, passing in a `receiverState` to annotate the timeline diagram. Note that the client process should always call this, after receiving a message. Specifically, even if you wish to see duplicates, you should still call `MarkMessageReceived` -- the Channels data structure will take care of ensuring that the proper number of duplicates are still generated.
 
 The messages received by `NextMessages()` are "wrapped" (which is necessary for `MarkMessageReceived()` to function). To obtain an underlying message inside a receive loop, call:
 

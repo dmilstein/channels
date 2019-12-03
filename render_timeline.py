@@ -7,6 +7,9 @@ import re
 import sys
 
 from jinja2 import Environment, FileSystemLoader
+
+from tla_state_parser import parse_tla_state
+
 env = Environment(loader=FileSystemLoader('templates'))
 
 TimelineSpacing = 200
@@ -87,6 +90,15 @@ def render_msg_steps(msg_steps):
 def max_step(msg_steps):
     return max([m.recvAt for m in msg_steps])
 
+state_re = re.compile(r'State \d+:.*?\n(.+?)\n\n', re.DOTALL)
+
+def extract_states(tlc_output):
+    """
+    Return a list of dicts representing the states in the TLC output
+    """
+    return [ parse_tla_state(m.group(1))
+             for m in state_re.finditer(tlc_output)]
+
 msg_steps_re = re.compile(r'MsgSteps .*? (\{.*?\})', re.DOTALL) # .*? matches = or |->
 # Ugh, the regex below is kinda fragile -- depends on the trailing ],
 # At some point, maybe write a parser
@@ -103,10 +115,10 @@ def extract_msg_steps(tlc_output):
     set their recvAt to be one greater than the sendAt.
     """
     # Grab the last one, which should have all the steps
-    step_str = msg_steps_re.findall(contents)[-1].replace("\n", " ")
+    step_str = msg_steps_re.findall(tlc_output)[-1].replace("\n", " ")
     all_msg_steps = msg_re.findall(step_str)
 
-    client_inbox_str = client_inbox_re.findall(contents)[-1].replace("\n", " ")
+    client_inbox_str = client_inbox_re.findall(tlc_output)[-1].replace("\n", " ")
     all_unreceived_steps = msg_re.findall(client_inbox_str)
     return (
         [ extract_one_step(ms, True) for ms in all_msg_steps ] +
@@ -140,5 +152,8 @@ def get_field(fname, tlc_encoded_step):
 
 if __name__ == '__main__':
     contents = open(sys.argv[1]).read()
-    print(render_msg_steps(extract_msg_steps(contents)))
+    import pprint
+    pp = pprint.PrettyPrinter(indent = 2)
+    pp.pprint(extract_states(contents)[-1])
+    #print(render_msg_steps(extract_msg_steps(contents)))
     #   print extract_msg_steps(contents)

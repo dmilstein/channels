@@ -10,14 +10,8 @@ MODEL_TARGETS = $(patsubst %.pcal,%.model,$(wildcard *.pcal))
 ChannelsTest: ChannelsTest.tla Channels.tla
 	tlc ChannelsTest
 
-ChannelsReliableTest: ChannelsReliableTest.tla Channels.tla
-	tlc ChannelsReliableTest
-
-ChannelsDuplicatesTest: ChannelsDuplicatesTest.tla Channels.tla
-	tlc ChannelsDuplicatesTest
-
-ChannelsOutOfOrderTest: ChannelsOutOfOrderTest.tla Channels.tla
-	tlc ChannelsOutOfOrderTest
+Channels%Test: Channels%Test.tla
+	tlc $@
 
 %.tla: %.pcal
 	cp $< $@ && pcal -nocfg $@

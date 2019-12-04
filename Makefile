@@ -7,10 +7,7 @@ MODEL_TARGETS = $(patsubst %.pcal,%.model,$(wildcard *.pcal))
 # wire.tla: wire.pcal
 # 	cp wire.pcal wire.tla && pcal wire.tla
 
-ChannelsTest: ChannelsTest.tla Channels.tla
-	tlc ChannelsTest
-
-Channels%Test: Channels%Test.tla
+Channels%Test: Channels%Test.tla ChannelsUtils.tla
 	tlc $@
 
 %.tla: %.pcal

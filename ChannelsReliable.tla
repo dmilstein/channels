@@ -3,50 +3,26 @@
 \* An implementation of the Channels abstraction that models perfectly reliable
 \* channels (no dropped messages, no duplicates, order always preserved)
 
-EXTENDS Integers, Sequences, TLC
+EXTENDS Integers, Sequences, TLC, ChannelsUtils
 
-InitChannels(Clients) ==
-  [ ClientInboxes |-> [ c \in Clients |-> <<>> ],
-    LogicalTime |-> 0,
-    MsgSteps |-> {}]
-
-Message(sender, receiver,
-        msg, msgLabel,
-        sendAt, senderState) == [ sender |-> sender,
-                                  receiver |-> receiver,
-                                  payload |-> msg,
-                                  msgLabel |-> msgLabel,
-                                  sendAt |-> sendAt,
-                                  recvAt |-> -1,
-                                  senderState |-> senderState,
-                                  receiverState |-> "" ]
-
-Payload(msg) == msg.payload
+InitChannels(Clients) == InitChannelsWithInboxes([ c \in Clients |-> <<>> ])
 
 HasMessage(C, client) == C.ClientInboxes[client] /= <<>>
 
+\* Match interface of the other, more complex Channel implementations
+Wrap(msg) == [ rawMsg |-> msg ]
+
+AddToInbox(C, msg, receiver) == Append(C.ClientInboxes[receiver], Wrap(msg))
+
 Send(C, sender, receiver, msg, msgLabel, senderState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    ClientInboxes |-> (receiver :> Append(C.ClientInboxes[receiver],
-                                          Message(sender,
-                                                  receiver,
-                                                  msg,
-                                                  msgLabel,
-                                                  C.LogicalTime + 1,
-                                                  senderState)) @@ C.ClientInboxes)
-    ] @@ C
+  SendWithAdder(C, sender, receiver, msg, msgLabel, senderState, AddToInbox)
 
 \* Always return the first message, but return a set to fit the overall interface
 NextMessages(C, client) == {Head(C.ClientInboxes[client])}
 
+RemoveOneCopy(msg, inbox) == Tail(inbox)
+
 MarkMessageReceived(C, receiver, msg, receiverState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    ClientInboxes |-> (receiver :> Tail(C.ClientInboxes[receiver])
-                       @@ C.ClientInboxes),
-    MsgSteps |-> C.MsgSteps \union {[recvAt |-> C.LogicalTime + 1,
-                                     receiverState |-> receiverState,
-                                     payload |-> "" \* it's screwing up parsing
-                                     ] @@ msg}
-    ] @@ C
+  MarkReceivedWithRemover(C, receiver, msg, receiverState, RemoveOneCopy)
 
 =====

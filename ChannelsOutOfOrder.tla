@@ -9,59 +9,26 @@
 \* receiver in a set (we need the identifier so the set can store messages with
 \* identical contents).
 
-EXTENDS Integers, Sequences, TLC
+EXTENDS Integers, Sequences, TLC, ChannelsUtils
 
-InitChannels(Clients) ==
-  [ ClientInboxes |-> [ c \in Clients |-> {} ],
-    LogicalTime |-> 0,
-    MsgSteps |-> {},
-    NextMsgId |-> 0]
+InitChannels(Clients) == InitChannelsWithInboxes([ c \in Clients |-> {} ])
 
-Message(sender, receiver,
-        msg, msgLabel,
-        sendAt, senderState) == [ sender |-> sender,
-                                  receiver |-> receiver,
-                                  payload |-> msg,
-                                  msgLabel |-> msgLabel,
-                                  sendAt |-> sendAt,
-                                  recvAt |-> -1,
-                                  senderState |-> senderState,
-                                  receiverState |-> "" ]
+HasMessage(C, client) == C.ClientInboxes[client] /= {}
 
 Wrap(msg, msgId) == [ rawMsg |-> msg,
                       msgId |-> msgId ]
 
-Payload(msg) == msg.rawMsg.payload
-
-HasMessage(C, client) == C.ClientInboxes[client] /= {}
+AddToInbox(C, msg, reciever) == (C.ClientInboxes[reciever] \union
+                                 {Wrap(msg, C.NextMsgId)})
 
 Send(C, sender, receiver, msg, msgLabel, senderState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    NextMsgId |-> C.NextMsgId + 1,
-    ClientInboxes |-> (receiver :> (C.ClientInboxes[receiver] \union
-                                    {Wrap(Message(sender,
-                                                  receiver,
-                                                  msg,
-                                                  msgLabel,
-                                                  C.LogicalTime + 1,
-                                                  senderState),
-                                           C.NextMsgId)})
-                       @@ C.ClientInboxes)
-    ] @@ C
+  SendWithAdder(C, sender, receiver, msg, msgLabel, senderState, AddToInbox)
 
 NextMessages(C, receiver) == C.ClientInboxes[receiver]
 
 RemoveOneCopy(msg, inbox) == { m \in inbox: m.msgId /= msg.msgId }
 
 MarkMessageReceived(C, receiver, msg, receiverState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    ClientInboxes |-> (receiver :> RemoveOneCopy(msg,
-                                                 C.ClientInboxes[receiver])
-                       @@ C.ClientInboxes),
-    MsgSteps |-> C.MsgSteps \union {[recvAt |-> C.LogicalTime + 1,
-                                     receiverState |-> receiverState,
-                                     payload |-> "" \* it's screwing up parsing
-                                     ] @@ msg.rawMsg}
-    ] @@ C
+  MarkReceivedWithRemover(C, receiver, msg, receiverState, RemoveOneCopy)
 
 =====

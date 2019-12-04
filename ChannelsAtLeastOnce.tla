@@ -23,31 +23,25 @@
 \* numCopies decremented will be added. Then, in each of those "timelines", the
 \* proper number of copies will eventually be delivered.
 
-EXTENDS Integers, Sequences, TLC
+EXTENDS Integers, Sequences, TLC, ChannelsUtils
 
 \* How many times can a single message be duplicated?
 CONSTANT MaxDupes
 
-InitChannels(Clients) ==
-  [ ClientInboxes |-> [ c \in Clients |-> {} ],
-    LogicalTime |-> 0,
-    MsgSteps |-> {},
-    NextMsgId |-> 0]
+InitChannels(Clients) == InitChannelsWithInboxes([ c \in Clients |-> {} ])
 
-Message(sender, receiver,
-        msg, msgLabel,
-        sendAt, senderState) == [ sender |-> sender,
-                                  receiver |-> receiver,
-                                  payload |-> msg,
-                                  msgLabel |-> msgLabel,
-                                  sendAt |-> sendAt,
-                                  recvAt |-> -1,
-                                  senderState |-> senderState,
-                                  receiverState |-> "" ]
+HasMessage(C, client) == C.ClientInboxes[client] /= {}
 
 Wrap(msg, msgId) == [ rawMsg |-> msg,
                       numCopies |-> -1,
                       msgId |-> msgId ]
+
+AddToInbox(C, msg, receiver) == (C.ClientInboxes[receiver] \union
+                                 {Wrap(msg, C.NextMsgId)})
+
+Send(C, sender, receiver, msg, msgLabel, senderState) ==
+  SendWithAdder(C, sender, receiver, msg, msgLabel, senderState, AddToInbox)
+
 
 Expand(wrapped) == IF wrapped.numCopies > 0
   THEN { wrapped }
@@ -56,41 +50,17 @@ Expand(wrapped) == IF wrapped.numCopies > 0
            numCopies |-> i ]:
          i \in 1..MaxDupes }
 
-Payload(msg) == msg.rawMsg.payload
-
-HasMessage(C, client) == C.ClientInboxes[client] /= {}
-
-Send(C, sender, receiver, msg, msgLabel, senderState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    NextMsgId |-> C.NextMsgId + 1,
-    ClientInboxes |-> (receiver :> (C.ClientInboxes[receiver] \union
-                                    { Wrap(Message(sender,
-                                                   receiver,
-                                                   msg,
-                                                   msgLabel,
-                                                   C.LogicalTime + 1,
-                                                   senderState),
-                                           C.NextMsgId)})
-                       @@ C.ClientInboxes)
-    ] @@ C
-
-NextMessages(C, receiver) == UNION { Expand(msg) :
+NextMessages(C, receiver) == UNION { Expand(msg):
                                      msg \in C.ClientInboxes[receiver] }
 
 RemoveOneCopy(msg, inbox) ==
-  LET msg_to_add_back == IF msg.numCopies = 1
+  LET msgToAddBack == IF msg.numCopies = 1
                          THEN {}
                          ELSE { [ numCopies |-> msg.numCopies-1 ] @@ msg}
   IN
-    msg_to_add_back \union { m \in inbox: m.msgId /= msg.msgId }
+    msgToAddBack \union { m \in inbox: m.msgId /= msg.msgId }
 
 MarkMessageReceived(C, receiver, msg, receiverState) ==
-  [ LogicalTime |-> C.LogicalTime + 1,
-    ClientInboxes |-> ((receiver :> RemoveOneCopy(msg, C.ClientInboxes[receiver]))
-                       @@ C.ClientInboxes),
-    MsgSteps |-> C.MsgSteps \union {[recvAt |-> C.LogicalTime + 1,
-                                     receiverState |-> receiverState,
-                                     payload |-> "" \* it's screwing up parsing
-                                     ] @@ msg.rawMsg}
-    ] @@ C
+  MarkReceivedWithRemover(C, receiver, msg, receiverState, RemoveOneCopy)
+
 =====

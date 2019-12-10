@@ -43,7 +43,7 @@ First, construct one of the versions of the Channels data structures, passing in
 
 To send a message, update that global Channels variable inside the PlusCal algorithm, as so:
 
-    Channels := Send(Channels, sender, receiver, msg,
+    Channels := Send(Channels, self, receiver, msg,
                      "label for the message",
                      "label for state of sender at send time")
 

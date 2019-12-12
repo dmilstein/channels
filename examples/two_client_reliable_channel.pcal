@@ -1,0 +1,51 @@
+---- MODULE two_client_reliable_channel ----
+
+\* Incrementing counter, two clients, reliable communications
+
+EXTENDS Integers, FiniteSets
+
+INSTANCE ChannelsReliable
+
+CONSTANT MsgsPerClient
+
+Clients == {"client1", "client2"}
+
+Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
+
+(*--algorithm two_client_reliable_channel
+variables
+  C = InitChannels(Clients);
+
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    Val = 0;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        MsgsSent := MsgsSent + 1;
+        Val := Val + 1;
+        C := Send(C, self, Other(self), 1, "1", Val);
+      or
+        await HasMessage(C, self);
+        with wrappedMsg \in NextMessages(C, self) do
+          Val := Val + Payload(wrappedMsg);
+          C := MarkMessageReceived(C, self, wrappedMsg, Val)
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+end algorithm;*)
+
+\* This property is passed
+AllIncrementsCounted == <>[](\A c \in Clients:
+                             Val[c] = MsgsPerClient * Cardinality(Clients))
+
+\* To trigger failures, switch property to this
+FailingProperty == <>[](\A c \in Clients:
+                        Val[c] = MsgsPerClient * Cardinality(Clients) + 1)
+
+=====

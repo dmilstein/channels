@@ -3,14 +3,26 @@ Library to parse TLA+ states, as output by TLC when it finds violations of
 invariants or properties.
 """
 
+from frozendict import frozendict
+
 from pyparsing import *
 
 def parse_tla_state(state_str):
-    """
-    Given a string describing a single TLA state, return a dictionary
+    """Given a string describing a single TLA state, return a dictionary
     mapping variable names to the values those variables have in the
-    given state (making the natural conversions of ints, strings, dicts,
-    lists, and sets as expected)
+    given state.
+
+    Constructs *immutable* python versions of the various TLA datatypes --
+    because TLA+ allows sets of all of its datatypes, which is only possible if
+    we use immutable python types.
+
+    Thus:
+      - ints -> ints
+      - strings -> strings
+      - sequences -> tuples (*not* lists)
+      - functions -> frozendicts
+      - sets -> frozensets
+
     """
     expr = Forward()
 
@@ -20,25 +32,28 @@ def parse_tla_state(state_str):
     identifier = Word(alphas + nums + "_")
 
     integer = Word("-" + nums, nums).setParseAction(lambda toks: int(toks[0]))
-    
+
     string = QuotedString('"')
 
-    sequence = nestedExpr("<<", ">>", delimitedList(expr))
+    sequence = nestedExpr("<<", ">>",
+                          delimitedList(expr)).setParseAction(
+                              lambda toks: tuple(toks[0]))
 
     # In fact, sets can only contain things which can be checked for
     # equality, which is not all expressions, but whatever.
-    tla_set = nestedExpr("{", "}", delimitedList(expr)).setParseAction(
-        lambda toks: set(toks[0]))
+    tla_set = nestedExpr("{", "}",
+                         delimitedList(expr)).setParseAction(
+                             lambda toks: frozenset(toks[0]))
 
     functionMember = Group(identifier + Suppress("|->") + expr)
     functionMemberLst = delimitedList(functionMember)
 
-    # xxx figure out how to match empty functions
-    #function = nestedExpr("[", "]", Optional(Dict(functionMemberLst), {}))
-    function = nestedExpr("[", "]", Dict(functionMemberLst))
+    function = nestedExpr("[", "]",
+                          Dict(functionMemberLst)).setParseAction(
+                              lambda toks: frozendict(toks[0]))
 
     modelValue = identifier # hmm, not sure how else to do this
-    
+
     expr << (integer | string | sequence | tla_set | function | modelValue)
 
     # This feels a bit hacky -- rather than expressing the /\'s as

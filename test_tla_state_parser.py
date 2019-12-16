@@ -1,3 +1,5 @@
+from frozendict import frozendict
+
 from tla_state_parser import parse_tla_state
 
 tla_sample = r"""
@@ -36,38 +38,51 @@ tla_sample = r"""
 /\ MsgsSent = [client1 |-> 2, client2 |-> 1]
 """
 
-def test_parse_simple_state():
-    assert parse_tla_state(r'/\ x = 2') == { 'x': 2 }
-    assert parse_tla_state(r'/\ x = -2') == { 'x': -2 }
-    assert parse_tla_state(r'/\ x = "abc"') == { 'x': "abc" }
-    assert parse_tla_state(r'/\ x = <<1,2>>') == { 'x': [1,2] }
-    assert parse_tla_state(r'/\ x = <<1,"a">>') == { 'x': [1,"a"] }
-    assert parse_tla_state(r'/\ x = <<1,<<2>>>>') == { 'x': [1,[2]] }
-    assert parse_tla_state(r'/\ x = <<>>') == { 'x': [] }
-    assert parse_tla_state(r'/\ x = [y |-> 0]') == { 'x': { 'y': 0 }}
-    assert parse_tla_state(r'/\ x = [y |-> "abc"]') == { 'x': { 'y': "abc" }}
-    assert parse_tla_state(r'/\ x = [y |-> "ab c"]') == { 'x': { 'y': "ab c" }}
-    assert parse_tla_state(r'/\ x = [y |-> 0, z |-> 1]') == { 'x': { 'y': 0, 'z': 1 }}
-    # Figure out how to match empty dicts
-    # assert parse_tla_state(r'/\ x = []') == { 'x': {}}
-    assert parse_tla_state(r'/\ x = {}') == { 'x': set()}
-    assert parse_tla_state(r'/\ x = {1}') == { 'x': {1}}
-    assert parse_tla_state(r'/\ x = {1, 2}') == { 'x': {1, 2}}
-    assert parse_tla_state(r'/\ x = { [y |-> 1] }') == { 'x': {{'y': 1}}}
+pts = parse_tla_state
+
+def test_parse_numbers():
+    assert pts(r'/\ x = 2') == { 'x': 2 }
+    assert pts(r'/\ x = -2') == { 'x': -2 }
+
+def test_parse_strings():
+    assert pts(r'/\ x = "abc"') == { 'x': "abc" }
+
+def test_parse_sequences():
+    assert pts(r'/\ x = <<1,2>>') == { 'x': (1,2) }
+    assert pts(r'/\ x = <<1,"a">>') == { 'x': (1,"a") }
+    assert pts(r'/\ x = <<1,<<2>>>>') == { 'x': (1,(2,)) }
+    assert pts(r'/\ x = <<>>') == { 'x': () }
+
+def test_parse_functions():
+    a_parsed_func = pts(r'/\ x = [y |-> 0]')['x']
+    s = set([a_parsed_func])
+    assert a_parsed_func in s
+    assert pts(r'/\ x = [y |-> 0]') == {'x': frozendict({ 'y': 0 })}
+    assert pts(r'/\ x = [y |-> "abc"]') == {'x': frozendict({ 'y': "abc" })}
+    assert pts(r'/\ x = [y |-> "ab c"]') == { 'x': frozendict({ 'y': "ab c" })}
+    assert pts(r'/\ x = [y |-> 0, z |-> 1]') == { 'x': frozendict({ 'y': 0, 'z': 1 })}
+    assert pts(r'/\ x = []') == { 'x': frozendict({})}
+
+def test_parse_sets():
+    assert pts(r'/\ x = {}') == { 'x': frozenset()}
+    assert pts(r'/\ x = {1}') == { 'x': frozenset([1])}
+    assert pts(r'/\ x = {1, 2}') == { 'x': frozenset([1, 2])}
+    assert pts(r'/\ x = {1, {2}}') == { 'x': frozenset([1, frozenset([2])])}
+    assert pts(r'/\ x = { [y |-> 1] }') == { 'x': frozenset([frozendict({'y': 1})])}
 
 def test_parse_identifier_names():
-    assert parse_tla_state(r'/\ x1 = 1') == { 'x1': 1 }
-    assert parse_tla_state(r'/\ x_1 = 1') == { 'x_1': 1 }
+    assert pts(r'/\ x1 = 1') == { 'x1': 1 }
+    assert pts(r'/\ x_1 = 1') == { 'x_1': 1 }
 
 def test_parse_multiline():
-    assert parse_tla_state('/\\ x = <<1,\n2>>') == { 'x': [1,2] }
-    
+    assert pts('/\\ x = <<1,\n2>>') == { 'x': (1,2) }
+
 def test_parse_multiple_variables():
     two_vars = r'''
 /\ x = 2
 /\ y = 3
 '''
-    assert parse_tla_state(two_vars) == { 'x': 2, 'y': 3 }
+    assert pts(two_vars) == { 'x': 2, 'y': 3 }
 
     four_vars = r'''
 /\ x = 2
@@ -76,11 +91,10 @@ def test_parse_multiple_variables():
 /\ w = [ a |-> <<1, 2>> ]
 '''
 
-    assert parse_tla_state(four_vars) == { 'x': 2,
-                                           'y': 3,
-                                           'z': {'a': 'b'},
-                                           'w': {'a': [1, 2]}
-                                               }
+    assert pts(four_vars) == { 'x': 2,
+                               'y': 3,
+                               'z': {'a': 'b'},
+                               'w': {'a': (1, 2)}}
 
 def test_embedded_dict():
     tla = r'''
@@ -89,8 +103,7 @@ def test_embedded_dict():
           receiver |-> "client2"] },
   NextMsgId |-> 0 ]
 '''
-    assert parse_tla_state(tla) == { 'x': {'MsgSteps': set( {'sender': "client1",
-                                                             'receiver': "client2"}),
-                                           'NextMsgId': 0}}
-                                                             
-                                                             
+    assert pts(tla) == {
+        'x': frozendict({'MsgSteps': set([frozendict({'sender': "client1",
+                                                      'receiver': "client2"})]),
+                         'NextMsgId': 0})}

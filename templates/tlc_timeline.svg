@@ -1,0 +1,59 @@
+<?xml version="1.0" standalone="no"?>
+<svg width="600" height="1000" version="1.1" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <!-- arrowhead marker definition -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5"
+        markerWidth="6" markerHeight="6"
+        orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" />
+    </marker>
+  </defs>
+    
+  <style>
+    line {
+      stroke-width: 1;
+      stroke: black;
+    } 
+    .client-label {
+    font: 13px sans-serif;
+    text-anchor: middle;
+    baseline-shift: 30%;
+    }
+    
+   .msg-label {
+   font: 11px sans-serif;
+   baseline-shift: 30%;
+   }
+
+   .state-label{
+   font: 11px sans-serif;
+   baseline-shift: -30%;
+   }
+
+        
+  </style>
+
+  {% for c in client_lines %}
+  <text x="{{c.x1()}}" y="{{c.y1()}}" class='client-label'>{{c.client}}</text>
+  <line x1="{{c.x1()}}" y1="{{c.y1()}}" x2="{{c.x2()}}" y2="{{c.y2()}}"></line>
+  {% endfor %}
+  
+  {% for m in msg_steps %}
+  <line x1="{{m.x1}}" y1="{{m.y1}}" x2="{{m.x2}}" y2="{{m.y2}}"
+        marker-end="url(#arrow)" {% if not m.received %} stroke-dasharray="4"{% endif %}></line>
+  
+  <text x="{{m.label_x1-5}}" y="{{m.label_y1}}" class="state-label"
+        text-anchor="end">{{m.left_state}}</text>
+  
+  <text x="{{m.label_x2+5}}" y="{{m.label_y2}}" class="state-label"
+        text-anchor="start">{{m.right_state}}</text>
+
+    <path id="line-{{m.step_idx}}" d="M {{m.label_x1}},{{m.label_y1}} L {{m.label_x2}},{{m.label_y2}}"/> 
+    <text>
+      <textPath href='#line-{{m.step_idx}}' class="msg-label" startOffset="{{m.label_offset_pct}}%">{{m.msg}}</textPath>
+    </text>
+
+  {% endfor %}
+  
+</svg>

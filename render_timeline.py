@@ -6,11 +6,11 @@ Render timeline from an annotated TLC trace as an SVG file. Write to stdout.
 import re
 import sys
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 
-from tla_state_parser import parse_tla_state
+from tlaparser import parse_tla_state
 
-env = Environment(loader=FileSystemLoader('templates'))
+env = Environment(loader=PackageLoader('tlaparser', 'templates'))
 
 TimelineSpacing = 200
 StepSpacing = 55
@@ -115,45 +115,36 @@ def extract_msg_steps(tlc_output):
     set their recvAt to be one greater than the sendAt.
     """
     # Grab the last one, which should have all the steps
-    step_str = msg_steps_re.findall(tlc_output)[-1].replace("\n", " ")
-    all_msg_steps = msg_re.findall(step_str)
+    final_state = extract_states(tlc_output)[-1]
+    all_msg_steps = final_state['C']['MsgSteps']
 
-    client_inbox_str = client_inbox_re.findall(tlc_output)[-1].replace("\n", " ")
-    all_unreceived_steps = msg_re.findall(client_inbox_str)
+    #client_inbox_str = client_inbox_re.findall(tlc_output)[-1].replace("\n", " ")
+    #all_unreceived_steps = msg_re.findall(client_inbox_str)
     return (
-        [ extract_one_step(ms, True) for ms in all_msg_steps ] +
-        [ extract_one_step(ms, False) for ms in all_unreceived_steps ]
+        [ extract_one_step(ms, True) for ms in all_msg_steps ]  #+
+        #[ extract_one_step(ms, False) for ms in all_unreceived_steps ]
         )
 
-def extract_one_step(tlc_encoded_step, received=True):
-    "Return a MsgStep tuple from the string covering a single step"
-    sendAt = int(get_field("sendAt", tlc_encoded_step))
+def extract_one_step(step, received=True):
+    "Return a MsgStep tuple from the parsed representation of a single step"
+    sendAt = step['sendAt']
     if received:
-        recvAt = int(get_field("recvAt", tlc_encoded_step))
+        recvAt = step["recvAt"]
     else:
         recvAt = sendAt + 2
-    return MsgStep(get_field("sender", tlc_encoded_step),
-                   get_field("receiver", tlc_encoded_step),
-                   get_field("msgLabel", tlc_encoded_step),
+    return MsgStep(step["sender"],
+                   step["receiver"],
+                   step["msgLabel"],
                    sendAt,
                    recvAt,
-                   get_field("senderState", tlc_encoded_step),
-                   get_field("receiverState", tlc_encoded_step),
+                   step["senderState"],
+                   step["receiverState"],
                    received)
-
-def get_field(fname, tlc_encoded_step):
-    # Handle quoted or unquoted fields (before long, add explicit parsing)
-    field_re = re.compile(r'%s \|-> (([^"].*?)[, ]|"(.*?)")' % fname)
-    m = field_re.search(tlc_encoded_step)
-    if not m:
-        raise Exception("Couldn't find field %s in %s" % (fname, tlc_encoded_step))
-    return m.group(2) or m.group(3)
-
 
 if __name__ == '__main__':
     contents = open(sys.argv[1]).read()
-    import pprint
-    pp = pprint.PrettyPrinter(indent = 2)
-    pp.pprint(extract_states(contents)[-1])
-    #print(render_msg_steps(extract_msg_steps(contents)))
-    #   print extract_msg_steps(contents)
+    # import pprint
+    # pp = pprint.PrettyPrinter(indent = 2)
+    # pp.pprint(extract_states(contents)[-1])
+    print(render_msg_steps(extract_msg_steps(contents)))
+    #print(extract_msg_steps(contents))

@@ -1,4 +1,5 @@
-VENV=env-ch/bin
+# Depends on building a virtualenv named 'env-ch'
+VENV=../env-ch/bin
 
 %.tla: %.pcal
 	cp $< $@ && pcal -nocfg $@
@@ -9,9 +10,11 @@ VENV=env-ch/bin
 #
 # Also depend on Channels implementations, how to show?
 #
+# Also also: keep the intervening .out file around on success? Maybe in subdir?
+#
 # Also also: I patched tla-bin to take a library path
 %.out: %.tla %.cfg
 	TLA_LIBRARY_PATH="../" tlc -workers 4 $< | tee $@
 
 %.svg: %.out
-	$(VENV)/python ./render_timeline.py $< > $@
+	$(VENV)/python ../render_timeline.py $< > $@

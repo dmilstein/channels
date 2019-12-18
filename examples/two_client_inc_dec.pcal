@@ -1,0 +1,64 @@
+---- MODULE two_client_inc_dec ----
+
+\* Incrementing counter, two clients, inc/dec, reliable communications
+\*
+\* This is an example of how you can get into trouble even with reliable
+\* communications.
+\*
+\* The algorithm is attempting to support both increments and decrements, while
+\* never allowing a negative Global counter value, but there's a sequence of
+\* events that defeats that.
+
+EXTENDS Integers
+
+INSTANCE ChannelsReliable
+
+CONSTANT MsgsPerClient
+
+Clients == {"client1", "client2"}
+
+Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
+
+Label(msg) == "Msg: " \o ToString(msg)
+
+(*--algorithm two_client_inc_dec
+variables
+  C = InitChannels(Clients);
+
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    GlobalCount = 0;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        with Increment \in {-1, 1} do
+          if GlobalCount + Increment < 0 then
+            skip;
+          else
+            GlobalCount := GlobalCount + Increment;
+            C := Send(C, self, Other(self), Increment, Label(Increment), GlobalCount);
+            MsgsSent := MsgsSent + 1;
+          end if;
+        end with;
+      or
+        await HasMessage(C, self);
+        with wrappedMsg \in NextMessages(C, self) do
+          GlobalCount := GlobalCount + Payload(wrappedMsg);
+          C := MarkMessageReceived(C, self, wrappedMsg, GlobalCount)
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+end algorithm;*)
+
+Invariant == \A c \in Clients: GlobalCount[c] >= 0
+
+EventuallyConsistent == <>[](\E c \in Clients:
+                             \A c1 \in Clients \ {c}:
+                             GlobalCount[c] = GlobalCount[c1])
+
+=====

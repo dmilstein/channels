@@ -99,12 +99,6 @@ def extract_states(tlc_output):
     return [ parse_tla_state(m.group(1))
              for m in state_re.finditer(tlc_output)]
 
-msg_steps_re = re.compile(r'MsgSteps .*? (\{.*?\})', re.DOTALL) # .*? matches = or |->
-# Ugh, the regex below is kinda fragile -- depends on the trailing ],
-# At some point, maybe write a parser
-client_inbox_re = re.compile(r'ClientInboxes |->\s+\[(.*?)\],', re.DOTALL)
-msg_re = re.compile(r'\[(.*?)\]')
-
 def extract_msg_steps(tlc_output):
     """Return a list of message steps from the output of a TLC model run,
 
@@ -116,13 +110,19 @@ def extract_msg_steps(tlc_output):
     """
     # Grab the last one, which should have all the steps
     final_state = extract_states(tlc_output)[-1]
-    all_msg_steps = final_state['C']['MsgSteps']
 
-    #client_inbox_str = client_inbox_re.findall(tlc_output)[-1].replace("\n", " ")
-    #all_unreceived_steps = msg_re.findall(client_inbox_str)
+    # Pull out the sent + received messages
+    received_steps = final_state['C']['MsgSteps']
+
+    # Pull out the messages waiting in client inboxes -- which have been sent
+    # but not yet received, when the algorithm terminated.
+    unreceived_steps = []
+    for inbox in final_state['C']['ClientInboxes'].values():
+        unreceived_steps.extend([ wrapped['rawMsg'] for wrapped in inbox])
+
     return (
-        [ extract_one_step(ms, True) for ms in all_msg_steps ]  #+
-        #[ extract_one_step(ms, False) for ms in all_unreceived_steps ]
+        [ extract_one_step(ms, received=True) for ms in received_steps ]  +
+        [ extract_one_step(ms, received=False) for ms in unreceived_steps ]
         )
 
 def extract_one_step(step, received=True):
@@ -143,8 +143,4 @@ def extract_one_step(step, received=True):
 
 if __name__ == '__main__':
     contents = open(sys.argv[1]).read()
-    # import pprint
-    # pp = pprint.PrettyPrinter(indent = 2)
-    # pp.pprint(extract_states(contents)[-1])
     print(render_msg_steps(extract_msg_steps(contents)))
-    #print(extract_msg_steps(contents))

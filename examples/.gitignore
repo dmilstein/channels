@@ -1,4 +1,5 @@
 *.old
 *.out
 *.tla
+*.svg
 states/

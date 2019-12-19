@@ -1,6 +1,6 @@
 from frozendict import frozendict
 
-from tla_state_parser import parse_tla_state
+from .tla_state_parser import parse_tla_state
 
 tla_sample = r"""
 /\ MsgsPerClient = 2

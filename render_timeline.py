@@ -28,35 +28,39 @@ def client_idx(client_name, all_clients):
     return all_clients.index(client_name)
 
 class MsgStep(object):
+    "Collect key data from a parsed MsgStep, to support rendering"
 
-    def __init__(self, sender, receiver, msg, sendAt, recvAt,
-                     senderState, receiverState,
-                     received):
-        self.sender = sender
-        self.receiver = receiver
-        self.msg = msg
-        self.sendAt = sendAt
-        self.recvAt = recvAt
-        self.senderState = senderState
-        self.receiverState = receiverState
+    def __init__(self, parsed_step, received):
+        self.sender        = parsed_step["sender"]
+        self.receiver      = parsed_step["receiver"]
+        self.msg           = parsed_step["msgLabel"]
+        self.senderState   = parsed_step["senderState"]
+        self.receiverState = parsed_step["receiverState"]
+
         self.received = received
 
-    def get_line(self, clients):
+        self.sendAt = parsed_step['sendAt']
+        if received:
+            self.recvAt = parsed_step["recvAt"]
+        else:
+            self.recvAt = self.sendAt + 2
+
+    def get_line(self, all_clients):
         "Return a MessageLine object for rendering this step"
-        return MsgLine(self, clients)
+        return MsgLine(self, all_clients)
 
 class MsgLine(object):
-    LINE_IDX = 0
+    LINE_IDX = 0 # To support id-based SVG path linking
 
-    def __init__(self, msg_step, clients):
+    def __init__(self, msg_step, all_clients):
         self.line_idx = MsgLine.LINE_IDX
         MsgLine.LINE_IDX += 1
 
         self.msg = msg_step.msg
 
-        self.x1 = x_pos(msg_step.sender, clients)
+        self.x1 = x_pos(msg_step.sender, all_clients)
         self.y1 = y_pos(msg_step.sendAt)
-        self.x2 = x_pos(msg_step.receiver, clients)
+        self.x2 = x_pos(msg_step.receiver, all_clients)
         self.y2 = y_pos(msg_step.recvAt)
 
         self.received = msg_step.received
@@ -70,7 +74,7 @@ class MsgLine(object):
         self.label_x1 = min(x_positions)
         self.label_x2 = max(x_positions)
         # Ugh, but whatever
-        if self.label_x1 == x_pos(msg_step.sender, clients):
+        if self.label_x1 == x_pos(msg_step.sender, all_clients):
             self.label_y1 = self.y1
             self.label_y2 = self.y2
             self.label_offset_pct = "15"
@@ -147,25 +151,9 @@ def extract_msg_steps(final_state):
         unreceived_steps.extend([ wrapped['rawMsg'] for wrapped in inbox])
 
     return (
-        [ extract_one_step(ms, received=True) for ms in received_steps ]  +
-        [ extract_one_step(ms, received=False) for ms in unreceived_steps ]
+        [ MsgStep(ms, received=True) for ms in received_steps ]  +
+        [ MsgStep(ms, received=False) for ms in unreceived_steps ]
         )
-
-def extract_one_step(step, received=True):
-    "Return a MsgStep tuple from the parsed representation of a single step"
-    sendAt = step['sendAt']
-    if received:
-        recvAt = step["recvAt"]
-    else:
-        recvAt = sendAt + 2
-    return MsgStep(step["sender"],
-                   step["receiver"],
-                   step["msgLabel"],
-                   sendAt,
-                   recvAt,
-                   step["senderState"],
-                   step["receiverState"],
-                   received)
 
 def extract_clients(final_state):
     """Return a list of the client names found in the final state output from a TLC

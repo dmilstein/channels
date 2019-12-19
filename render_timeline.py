@@ -17,37 +17,49 @@ StepSpacing = 55
 LeftMargin = 50
 TopMargin = 20
 
-clients = ["client1", "client2"] # hardcoding for the win!!!
-
-def x_pos(client_name):
-    return LeftMargin + (client_idx(client_name) * TimelineSpacing)
+def x_pos(client_name, clients):
+    return LeftMargin + (client_idx(client_name, clients) * TimelineSpacing)
 
 def y_pos(sendAt):
     return TopMargin + (sendAt * StepSpacing)
 
-def client_idx(client_name):
-    return clients.index(client_name)
+def client_idx(client_name, all_clients):
+    return all_clients.index(client_name)
 
 class MsgStep(object):
-
-    STEP_IDX = 0
 
     def __init__(self, sender, receiver, msg, sendAt, recvAt,
                      senderState, receiverState,
                      received):
-        self.recvAt = recvAt # hack so I can do max recvAt elsewhere
+        self.sender = sender
+        self.receiver = receiver
         self.msg = msg
-
-        self.step_idx = MsgStep.STEP_IDX
-        MsgStep.STEP_IDX += 1
-
-        self.x1 = x_pos(sender)
-        self.y1 = y_pos(sendAt)
-        self.x2 = x_pos(receiver)
-        self.y2 = y_pos(recvAt)
-
+        self.sendAt = sendAt
+        self.recvAt = recvAt
+        self.senderState = senderState
+        self.receiverState = receiverState
         self.received = received
-        if not received:
+
+    def get_line(self, clients):
+        "Return a MessageLine object for rendering this step"
+        return MsgLine(self, clients)
+
+class MsgLine(object):
+    LINE_IDX = 0
+
+    def __init__(self, msg_step, clients):
+        self.line_idx = MsgLine.LINE_IDX
+        MsgLine.LINE_IDX += 1
+
+        self.msg = msg_step.msg
+
+        self.x1 = x_pos(msg_step.sender, clients)
+        self.y1 = y_pos(msg_step.sendAt)
+        self.x2 = x_pos(msg_step.receiver, clients)
+        self.y2 = y_pos(msg_step.recvAt)
+
+        self.received = msg_step.received
+        if not self.received:
             receiverState = ''
             self.x2 = self.x1 + abs(self.x1 - self.x2)/2
             self.y2 = self.y1 + abs(self.y1 - self.y2)/2
@@ -57,65 +69,64 @@ class MsgStep(object):
         self.label_x1 = min(x_positions)
         self.label_x2 = max(x_positions)
         # Ugh, but whatever
-        if self.label_x1 == x_pos(sender):
+        if self.label_x1 == x_pos(msg_step.sender, clients):
             self.label_y1 = self.y1
             self.label_y2 = self.y2
             self.label_offset_pct = "15"
-            self.left_state = senderState
-            self.right_state = receiverState
+            self.left_state = msg_step.senderState
+            self.right_state = msg_step.receiverState
         else:
             self.label_y1 = self.y2
             self.label_y2 = self.y1
             self.label_offset_pct = "65"
-            self.left_state = receiverState
-            self.right_state = senderState
+            self.left_state = msg_step.receiverState
+            self.right_state = msg_step.senderState
 
 class ClientLine(object):
-    def __init__(self, client, num_steps):
+    def __init__(self, client, all_clients, num_steps):
         self.client = client
-        self.idx = client_idx(client)
+        self.all_clients = all_clients
+        self.idx = client_idx(client, all_clients)
         self.num_steps = num_steps
 
-    def x1(self): return x_pos(self.client)
+    def x1(self): return x_pos(self.client, self.all_clients)
     def y1(self): return TopMargin
-    def x2(self): return x_pos(self.client)
+    def x2(self): return x_pos(self.client, self.all_clients)
     def y2(self): return TopMargin + (self.num_steps * StepSpacing)
 
-def render_msg_steps(msg_steps):
+def render_msg_steps(msg_steps, clients):
     template = env.get_template('tlc_timeline.svg')
-    return template.render(client_lines=[ClientLine(c, max_step(msg_steps))
+    return template.render(client_lines=[ClientLine(c,
+                                                    clients,
+                                                    max_step(msg_steps))
                                          for c in clients],
-                           msg_steps=msg_steps)
+                           msg_lines=[m.get_line(clients) for m in msg_steps])
 
 def max_step(msg_steps):
     return max([m.recvAt for m in msg_steps])
 
 state_re = re.compile(r'State \d+:.*?\n(.+?)\n\n', re.DOTALL)
 
-def extract_states(tlc_output):
+def parse_states(tlc_output):
     """
     Return a list of dicts representing the states in the TLC output
     """
     return [ parse_tla_state(m.group(1))
              for m in state_re.finditer(tlc_output)]
 
-def extract_msg_steps(tlc_output):
-    """Return a list of message steps from the output of a TLC model run,
+def extract_msg_steps(final_state):
+    """Return a list of message steps from the final state a TLC model run,
+    when the Channels message passing machinery was used.
 
-    when the abstract message passing machinery is used.
+    This both collects the sent + received messages from the MsgSteps dict, and
+    also the sent-but-not-received messages in ClientInboxes.
 
-    For messages which were sent but not yet received (i.e. still in
-    ClientInboxes), we set the "received" flag to False, and arbitrarily
-    set their recvAt to be one greater than the sendAt.
+    For messages which were sent but not yet received, we set the "received"
+    flag to False, and arbitrarily set their recvAt to be one greater than the
+    sendAt.
     """
-    # Grab the last one, which should have all the steps
-    final_state = extract_states(tlc_output)[-1]
-
-    # Pull out the sent + received messages
     received_steps = final_state['C']['MsgSteps']
 
-    # Pull out the messages waiting in client inboxes -- which have been sent
-    # but not yet received, when the algorithm terminated.
     unreceived_steps = []
     for inbox in final_state['C']['ClientInboxes'].values():
         unreceived_steps.extend([ wrapped['rawMsg'] for wrapped in inbox])
@@ -141,6 +152,17 @@ def extract_one_step(step, received=True):
                    step["receiverState"],
                    received)
 
+def extract_clients(final_state):
+    """Return a list of the client names found in the final state output from a TLC
+    model run, where the Channels machinery was used.
+
+    The list will be alpha-sorted by client name
+    """
+    return sorted(list(final_state['C']['ClientInboxes'].keys()))
+
 if __name__ == '__main__':
-    contents = open(sys.argv[1]).read()
-    print(render_msg_steps(extract_msg_steps(contents)))
+    tlc_output = open(sys.argv[1]).read()
+    final_state = parse_states(tlc_output)[-1]
+    msg_steps = extract_msg_steps(final_state)
+    clients = extract_clients(final_state)
+    print(render_msg_steps(msg_steps, clients))

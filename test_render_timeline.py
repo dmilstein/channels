@@ -86,3 +86,9 @@ def test_parse_states():
 
     clients = extract_clients(final_state)
     assert clients == ['client1', 'client2']
+
+def test_parser_can_find_channels_under_any_name():
+    tlc_output_adjusted = tlc_output.replace(r'/\ C =', r'/\ OtherName =')
+
+    steps = extract_msg_steps(parse_states(tlc_output_adjusted)[-1])
+    assert len(steps) == 3

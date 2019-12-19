@@ -3,6 +3,7 @@
 Render timeline from an annotated TLC trace as an SVG file. Write to stdout.
 """
 
+from collections.abc import Mapping
 import re
 import sys
 
@@ -114,6 +115,19 @@ def parse_states(tlc_output):
     return [ parse_tla_state(m.group(1))
              for m in state_re.finditer(tlc_output)]
 
+def extract_channels(final_state):
+    "Find the Channels object in a state from TLC output"
+    channel_keys = set(['ClientInboxes',
+                        'LogicalTime',
+                        'MsgSteps',
+                        'NextMsgId'])
+
+    for key, value in final_state.items():
+        if isinstance(value, Mapping) and set(value.keys()) == channel_keys:
+            return value
+
+    raise Exception("Could not find Channels object in TLC output")
+
 def extract_msg_steps(final_state):
     """Return a list of message steps from the final state a TLC model run,
     when the Channels message passing machinery was used.
@@ -125,10 +139,11 @@ def extract_msg_steps(final_state):
     flag to False, and arbitrarily set their recvAt to be one greater than the
     sendAt.
     """
-    received_steps = final_state['C']['MsgSteps']
+    channels_obj = extract_channels(final_state)
+    received_steps = channels_obj['MsgSteps']
 
     unreceived_steps = []
-    for inbox in final_state['C']['ClientInboxes'].values():
+    for inbox in channels_obj['ClientInboxes'].values():
         unreceived_steps.extend([ wrapped['rawMsg'] for wrapped in inbox])
 
     return (
@@ -158,7 +173,7 @@ def extract_clients(final_state):
 
     The list will be alpha-sorted by client name
     """
-    return sorted(list(final_state['C']['ClientInboxes'].keys()))
+    return sorted(list(extract_channels(final_state)['ClientInboxes'].keys()))
 
 if __name__ == '__main__':
     tlc_output = open(sys.argv[1]).read()

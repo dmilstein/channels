@@ -1,0 +1,60 @@
+---- MODULE two_client_dupe_channel ----
+
+\* Incrementing counter, two clients, dupe communications
+\*
+\* Multiple clients all keep track of a single, global counter.
+\*
+\* Each client can generate an increment "locally" (as if, e.g. a local user
+\* requested to increase the overall count), and then send it to the other
+\* client.
+
+EXTENDS Integers, FiniteSets
+
+INSTANCE ChannelsAlternate WITH MaxDupes <- 2
+
+CONSTANT MsgsPerClient
+
+Clients == {"client1", "client2"}
+
+Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
+
+(*--algorithm two_client_dupe_channel
+variables
+  C = InitChannels(Clients,
+                   [ duplicates |-> TRUE ]);
+
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    GlobalCount = 0;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        MsgsSent := MsgsSent + 1;
+        GlobalCount := GlobalCount + 1;
+        with Updated \in Send(C, self, Other(self), 1, "1", GlobalCount) do
+          C := Updated;
+        end with;
+      or
+        await NumMessages(C, self) > 0;
+        with msg = NextMessage(C, self) do
+          GlobalCount := GlobalCount + msg;
+          C := MarkMessageReceived(C, self, GlobalCount)
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+end algorithm;*)
+
+\* Given that the channel is dupe, this property will be satisfied
+AllIncrementsCounted == <>[](\A c \in Clients:
+                             GlobalCount[c] = MsgsPerClient * Cardinality(Clients))
+
+\* To trigger failures for rendering, switch property to this
+FailingProperty == <>[](\A c \in Clients:
+                        GlobalCount[c] = MsgsPerClient * Cardinality(Clients) + 1)
+
+=====

@@ -1,6 +1,6 @@
 ---- MODULE two_client_inc_dec ----
 
-\* Incrementing counter, two clients, inc/dec, reliable communications
+\* Incrementing/decrementing counter, two clients, reliable communications
 \*
 \* This is an example of how you can get into trouble even with reliable
 \* communications.
@@ -8,6 +8,9 @@
 \* The algorithm is attempting to support both increments and decrements, while
 \* never allowing a negative Global counter value, but there's a sequence of
 \* events that defeats that.
+\*
+\* The "intent" of the algorithm is for each client to only send a decrement
+\* after it sends an increment, so the overall count should never go negative.
 
 EXTENDS Integers
 

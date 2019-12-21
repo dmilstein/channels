@@ -1,0 +1,66 @@
+---- MODULE three_client_counter ----
+
+\* Incrementing counter, three clients, reliable communications
+\*
+\* Multiple clients all keep track of a single, global counter.
+\*
+\* Each client can generate an increment "locally" (as if, e.g. a local user
+\* requested to increase the overall count), and then send it to the other
+\* client.
+
+EXTENDS Integers, FiniteSets
+
+INSTANCE ChannelsReliable
+
+CONSTANT MsgsPerClient
+
+Clients == {"client1", "client2", "client3"}
+
+Other1(c) == CASE c = "client1" -> "client2"
+               [] c = "client2" -> "client3"
+               [] c = "client3" -> "client1"
+               [] OTHER -> FALSE
+
+Other2(c) == CASE c = "client1" -> "client3"
+               [] c = "client2" -> "client1"
+               [] c = "client3" -> "client2"
+               [] OTHER -> FALSE
+
+(*--algorithm three_client_counter
+variables
+  C = InitChannels(Clients);
+
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    GlobalCount = 0;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        MsgsSent := MsgsSent + 1;
+        GlobalCount := GlobalCount + 1;
+        FirstSend: C := Send(C, self, Other1(self), 1, "1", GlobalCount);
+        SecondSend: C := Send(C, self, Other2(self), 1, "1", GlobalCount);
+      or
+        await HasMessage(C, self);
+        with wrappedMsg \in NextMessages(C, self) do
+          GlobalCount := GlobalCount + Payload(wrappedMsg);
+          C := MarkMessageReceived(C, self, wrappedMsg, GlobalCount)
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+end algorithm;*)
+
+\* Given that the channel is reliable, this property will be satisfied
+AllIncrementsCounted == <>[](\A c \in Clients:
+                             GlobalCount[c] = MsgsPerClient * Cardinality(Clients))
+
+\* To trigger failures for rendering, switch property to this
+FailingProperty == <>[](\A c \in Clients:
+                        GlobalCount[c] = MsgsPerClient * Cardinality(Clients) + 1)
+
+=====

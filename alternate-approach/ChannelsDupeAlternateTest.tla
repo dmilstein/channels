@@ -10,19 +10,6 @@ Eq_(actual, expected) == Assert(actual = expected,
 ASSUME Eq_(AllSeqs({"a"}, 2), { <<"a">>, <<"a", "a">> })
 
 Clients == {"a", "b"}
-EmptyFunc == [ x \in {} |-> TRUE ]
-NonDupeChannel == InitChannels(Clients, EmptyFunc)
-ASSUME Eq_(NonDupeChannel, InitChannels(Clients, [ duplicates |-> FALSE ]))
-
-NonDupeFirstSendSet == Send(NonDupeChannel,
-                            "a", "b", "a message", "a label", "a state")
-
-ASSUME Eq_(Cardinality(NonDupeFirstSendSet), 1)
-ASSUME Eq_({ HasMessage(C, "a") : C \in NonDupeFirstSendSet }, {FALSE})
-ASSUME Eq_({ HasMessage(C, "b") : C \in NonDupeFirstSendSet }, {TRUE})
-ASSUME Eq_({ NumMessages(C, "a") : C \in NonDupeFirstSendSet }, {0})
-ASSUME Eq_({ NumMessages(C, "b") : C \in NonDupeFirstSendSet }, {1})
-
 
 DupeChannel == InitChannels(Clients, [ duplicates |-> TRUE ])
 

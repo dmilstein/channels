@@ -7,12 +7,10 @@ EXTENDS Integers, TLC, FiniteSets, Sequences
 \* How many times can a single message be duplicated?
 CONSTANT MaxDupes
 
-\* All the Channels implementations store client inboxes inside a map from
-\* names to inboxes
 
 InitChannels(clients, flags) ==
   [ ClientInboxes |-> [ c \in clients |-> <<>> ],
-    Flags |-> flags @@ [ duplicates |-> FALSE ],
+    Flags |-> flags @@ [ duplicates |-> FALSE, out_of_order |-> FALSE ],
     LogicalTime |-> 0,
     MsgSteps |-> {},
     NextMsgId |-> 0 \* not used in all implementations
@@ -39,6 +37,20 @@ AppendToInbox(C, msgSeq, receiver) == C.ClientInboxes[receiver] \o msgSeq
 
 \* Return a set of all sequences of <= n elements chosen from Set
 AllSeqs(S, n) == UNION {[1..m -> S] : m \in 1..n}
+
+SeqMap(Op(_), seq) == [x \in DOMAIN seq |-> Op(seq[x])]
+
+\* Generate the set of all sequences containing the elements from Seq1 and Seq2
+\* in order.
+AllInterleavings(Seq1, Seq2) ==
+ LET LHS == { <<"lhs", i>> : i \in DOMAIN Seq1 } IN
+ LET RHS == { <<"rhs", i>> : i \in DOMAIN Seq2 } IN
+{ f \in [ 1..(Len(Seq1) + Len(Seq2)) -> LHS \union RHS ] :
+  /\ \A x \in LHS \union RHS: \E i \in DOMAIN f: f[i] = x
+  /\ \A i \in 1..Len(f): i \in DOMAIN f
+  \*/\ \A i, j \in DOMAIN f: f[i][1] = f[j][1] /\ f[i][2] < f[j][2] => i < j
+  /\ \A i, j \in DOMAIN f: (f[i][1]) = (f[j][1]) /\ f[i][2] < f[j][2] => i < j
+}
 
 \* Return a set of distinct Channels objects, covering all the ways the new
 \* message could be added to client inboxes.

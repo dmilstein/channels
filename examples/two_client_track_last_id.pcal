@@ -1,0 +1,80 @@
+---- MODULE two_client_track_last_id ----
+
+\* Incrementing counter, two clients, dedupe by clients tracking last id seen.
+
+\* Uses a global counter, but that isn't unrealistic -- could be implemented by
+\* using (client_id, local_id) tuples.
+
+EXTENDS Integers, Sequences, FiniteSets
+
+\* Swap comment to trigger failures. This strategy works in the face of
+\* duplicate messages, as long as the duplicates are delivered sequentially.
+
+\* INSTANCE ChannelsDuplicates WITH MaxDupes <- 2
+INSTANCE ChannelsAtLeastOnce WITH MaxDupes <- 2
+
+CONSTANT MsgsPerClient
+
+Clients == {"client1", "client2"}
+
+Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
+
+Label(msg) == ToString(msg.msg) \o " (id: " \o ToString(msg.seq_id) \o ")"
+
+(*--algorithm two_client_track_last_id
+variables
+  Channels = InitChannels(Clients),
+  MsgSeqId = 0;
+
+define
+  TaggedMessage(msg) == [ seq_id |-> MsgSeqId, msg |-> msg ]
+end define;
+
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    GlobalCount = 0,
+    LastSeenId = -1;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        with Increment = 1 do
+          GlobalCount := GlobalCount + Increment;
+          with Msg = TaggedMessage(Increment) do
+            Channels := Send(Channels, self, Other(self),
+                             Msg, Label(Msg), GlobalCount);
+            MsgSeqId := MsgSeqId + 1;
+          end with;
+          MsgsSent := MsgsSent + 1;
+        end with;
+      or
+        await HasMessage(Channels, self);
+        with msg \in NextMessages(Channels, self) do
+          if LastSeenId /= Payload(msg).seq_id then
+            GlobalCount := GlobalCount + Payload(msg).msg;
+            LastSeenId := Payload(msg).seq_id;
+          end if;
+          Channels := MarkMessageReceived(Channels, self, msg, GlobalCount);
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+end algorithm;*)
+
+EventuallyConsistent == <>[](\E c \in Clients:
+                             \A c1 \in Clients \ {c}:
+                             GlobalCount[c] = GlobalCount[c1])
+
+AllIncrementsCounted ==  <>[](\A c \in Clients:
+                              GlobalCount[c] = MsgsPerClient * Cardinality(Clients))
+
+Property == EventuallyConsistent /\ AllIncrementsCounted
+
+\* To trigger failures for rendering timelines, switch property to this
+FailingProperty == <>[](\A c \in Clients:
+                        GlobalCount[c] = MsgsPerClient * Cardinality(Clients) + 1)
+
+=====

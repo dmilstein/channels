@@ -10,7 +10,7 @@
 
 EXTENDS Integers, FiniteSets
 
-INSTANCE ChannelsAlternate WITH MaxDupes <- 2
+INSTANCE ChannelsDuplicates WITH MaxDupes <- 2
 
 CONSTANT MsgsPerClient
 
@@ -20,8 +20,7 @@ Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
 
 (*--algorithm two_client_dupe_channel
 variables
-  C = InitChannels(Clients,
-                   [ duplicates |-> TRUE ]);
+  C = InitChannels(Clients);
 
 fair process client \in Clients
   variables
@@ -33,14 +32,12 @@ fair process client \in Clients
         await MsgsSent < MsgsPerClient;
         MsgsSent := MsgsSent + 1;
         GlobalCount := GlobalCount + 1;
-        with Updated \in Send(C, self, Other(self), 1, "1", GlobalCount) do
-          C := Updated;
-        end with;
+        C := Send(C, self, Other(self), 1, "1", GlobalCount);
       or
-        await NumMessages(C, self) > 0;
-        with msg = NextMessage(C, self) do
-          GlobalCount := GlobalCount + msg;
-          C := MarkMessageReceived(C, self, GlobalCount)
+        await HasMessage(C, self);
+        with msg \in NextMessages(C, self) do
+          GlobalCount := GlobalCount + Payload(msg);
+          C := MarkMessageReceived(C, self, msg, GlobalCount)
         end with;
       or
         skip;

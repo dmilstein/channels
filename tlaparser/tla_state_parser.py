@@ -22,6 +22,7 @@ def parse_tla_state(state_str):
       - sequences -> tuples (*not* lists)
       - functions -> frozendicts
       - sets -> frozensets
+      - model values -> strings (not sure what else to parse them as)
 
     """
     expr = Forward()
@@ -40,21 +41,28 @@ def parse_tla_state(state_str):
                               lambda toks: tuple(toks[0]))
 
     # In fact, sets can only contain things which can be checked for
-    # equality, which is not all expressions, but whatever.
+    # equality, which is not all expressions, but we're ignoring that
     tla_set = nestedExpr("{", "}",
                          delimitedList(expr)).setParseAction(
                              lambda toks: frozenset(toks[0]))
 
-    functionMember = Group(identifier + Suppress("|->") + expr)
-    functionMemberLst = delimitedList(functionMember)
+    function_member = Group(identifier + Suppress("|->") + expr)
+    function_member_list = delimitedList(function_member)
 
     function = nestedExpr("[", "]",
-                          Dict(functionMemberLst)).setParseAction(
+                          Dict(function_member_list)).setParseAction(
                               lambda toks: frozendict(toks[0]))
 
-    modelValue = identifier # hmm, not sure how else to do this
-
     expr << (integer | string | sequence | tla_set | function | modelValue)
+
+    model_value = identifier # hmm, not sure how else to do this
+
+    expr << (integer |
+             string |
+             sequence |
+             tla_set |
+             function |
+             model_value)
 
     # This feels a bit hacky -- rather than expressing the /\'s as
     # delimiters (which they basically are), I'm leaning on the fact

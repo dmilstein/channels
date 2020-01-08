@@ -53,7 +53,17 @@ def parse_tla_state(state_str):
                           Dict(function_member_list)).setParseAction(
                               lambda toks: frozendict(toks[0]))
 
-    expr << (integer | string | sequence | tla_set | function | modelValue)
+    # Apparently the state traces sometimes use the 'id :> val' form The only
+    # times I've seen it are wrapped in parens, so I'm just going to assume it
+    # always shows up that way, rather than figuring out full rules for
+    # precedence.
+    single_elt_function = (Suppress("(") +
+                           identifier +
+                           Suppress(":>") +
+                           expr +
+                           Suppress(")")).setParseAction(
+                               lambda toks: frozendict([(toks[0], toks[1])]))
+
 
     model_value = identifier # hmm, not sure how else to do this
 
@@ -62,6 +72,7 @@ def parse_tla_state(state_str):
              sequence |
              tla_set |
              function |
+             single_elt_function |
              model_value)
 
     # This feels a bit hacky -- rather than expressing the /\'s as

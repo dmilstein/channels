@@ -1,4 +1,57 @@
-Provide a data structure to model message passing with configurable guarantees -- reliable delivery, duplicates, out-of-order, duplicates **and** out of order ("at least once").
+## Introduction
+
+The Channels data structures provide message-passing implementations with two goals - first, to make it easy for TLA spec writers to model distributed systems with various kinds of message passing guarantees; second, to make it possible to create visualizations of message-passing flows.
+
+As an example, the below specifies a set of PlusCal processes which implement a distributed counter, which can be incremented or decremented:
+
+```tla
+fair process client \in Clients
+  variables
+    MsgsSent = 0,
+    GlobalCount = 0;
+  begin ClientLoop:
+    while TRUE do
+      either
+        await MsgsSent < MsgsPerClient;
+        with Increment \in {-1, 1} do
+          if GlobalCount + Increment < 0 then
+            skip;
+          else
+            GlobalCount := GlobalCount + Increment;
+            C := Send(C, self, Other(self), Increment, Label(Increment), GlobalCount);
+            MsgsSent := MsgsSent + 1;
+          end if;
+        end with;
+      or
+        await HasMessage(C, self);
+        with wrappedMsg \in NextMessages(C, self) do
+          GlobalCount := GlobalCount + Payload(wrappedMsg);
+          C := MarkMessageReceived(C, self, wrappedMsg, GlobalCount)
+        end with;
+      or
+        skip;
+      end either;
+    end while;
+end process;
+```
+
+Although each client only sends a negative increment when its version of the overall value is positive, the overall system can still reach a state with a negative counter.
+
+To view the timeline of how that can happen, run `render_timeline.py` on a failed run: E.g., if using the scripts from [tla-bin](https://github.com/pmer/tla-bin):
+
+    > tlc SomeSpec.tla > SomeSpec.out
+    > ./render_timeline.py SomeSpec.out > SomeSpec.svg
+
+For the above, this gives this timeline:
+
+![Counter: Two Clients, Inc/Dec](examples/images/two_client_inc_dec.svg)
+
+
+
+
+## Details
+
+Channels provides a data structure to model message passing with configurable guarantees -- reliable delivery, duplicates, out-of-order, duplicates **and** out of order ("at least once").
 
 All the versions of the Channels data strucures provide the same interface -- so that it's straightforward to change the messaging behavior for an algorithm and see how it behaves, merely by adjusting the Channels module included via EXTENDS or INSTANCE.
 

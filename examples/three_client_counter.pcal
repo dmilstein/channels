@@ -16,6 +16,7 @@ CONSTANT MsgsPerClient
 
 Clients == {"client1", "client2", "client3"}
 
+\* Yeah, this is ugly, but it's working for now.
 Other1(c) == CASE c = "client1" -> "client2"
                [] c = "client2" -> "client3"
                [] c = "client3" -> "client1"

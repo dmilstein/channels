@@ -7,8 +7,9 @@
 
 EXTENDS Integers, Sequences, FiniteSets
 
-\* Swap comment to trigger failures. This strategy works in the face of
-\* duplicate messages, as long as the duplicates are delivered sequentially.
+\* Swap comment here and in two_client_track_last_id.cfg to trigger
+\* failures. The strategy in this spec works in the face of duplicate messages,
+\* as long as the duplicates are delivered sequentially.
 
 \* INSTANCE ChannelsDuplicates WITH MaxDupes <- 2
 INSTANCE ChannelsAtLeastOnce WITH MaxDupes <- 2

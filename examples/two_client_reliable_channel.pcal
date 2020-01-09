@@ -14,9 +14,10 @@ INSTANCE ChannelsReliable
 
 CONSTANT MsgsPerClient
 
-Clients == {"client1", "client2"}
+\* Clients == {"client1", "client2"}
+CONSTANT Clients
 
-Other(c) == IF c = "client1" THEN "client2" ELSE "client1"
+Other(c) == CHOOSE c1 \in Clients: c1 /= c
 
 (*--algorithm two_client_reliable_channel
 variables

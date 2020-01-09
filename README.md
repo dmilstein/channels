@@ -35,6 +35,8 @@ fair process client \in Clients
 end process;
 ```
 
+(full code available in `examples/two_client_inc_dec.pcal`)
+
 Although each client only sends a negative increment when its version of the overall value is positive, the overall system can still reach a state with a negative counter.
 
 To view the timeline of how that can happen, run `render_timeline.py` on a failed run: E.g., if using the scripts from [tla-bin](https://github.com/pmer/tla-bin):
@@ -46,7 +48,7 @@ For the above, this gives this timeline:
 
 ![Counter: Two Clients, Inc/Dec](examples/images/two_client_inc_dec.svg)
 
-
+The dashed line which represents a message which has been sent but not yet received.
 
 
 ## Details
@@ -87,12 +89,14 @@ The messages received by `NextMessages()` are "wrapped" (which is necessary for 
 
 First, construct one of the versions of the Channels data structures, passing in the set of client process names, and store it in a global variable accessible by all clients:
 
+```tla
     INSTANCE ChannelsReliable
 
     Clients == {"client1", "client2"}
 
     variables
       Channels = InitChannels(Clients);
+```
 
 To send a message, update that global Channels variable inside a specific process in the PlusCal algorithm, as so:
 
@@ -170,17 +174,6 @@ Also, for this one, we're explicitly labeling each message, instead of just usin
 Now, if we switch the above code to the at-least-once channel implementation, we'll see that this implementation no longer works:
 
 ![Counter: Two Clients, Track Last ID, At-Least-Once](examples/images/two_client_track_last_id_at_least_once.svg)
-
-### `two_client_inc_dec.pcal` = trouble, even with a reliable channel
-
-The algorithm is attempting to support both increments and decrements, while
-never allowing a negative Global counter value. The "intent" of the algorithm is for each client to only send a decrement when it's "safe" to do so -- when the local value is greater than zero.
-
-But there's a sequence of events that defeats the attempt to never have a non-zero value, as below:
-
-![Counter: Two Clients, Inc/Dec](examples/images/two_client_inc_dec.svg)
-
-You can see the dashed line which represents a message which has been sent but not yet received.
 
 
 ### `three_client_counter.pcal`

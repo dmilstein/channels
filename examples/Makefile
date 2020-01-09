@@ -16,5 +16,5 @@ VENV=../env-ch/bin
 %.out: %.tla %.cfg
 	TLA_LIBRARY_PATH="../" tlc -workers 4 $< | tee $@
 
-%.svg: %.out
+images/%.svg: %.out
 	$(VENV)/python ../render_timeline.py $< > $@

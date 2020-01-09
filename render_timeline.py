@@ -101,11 +101,13 @@ class ClientLine(object):
 
 def render_msg_steps(msg_steps, clients):
     template = env.get_template('tlc_timeline.svg')
-    return template.render(client_lines=[ClientLine(c,
-                                                    clients,
-                                                    max_step(msg_steps))
-                                         for c in clients],
-                           msg_lines=[m.get_line(clients) for m in msg_steps])
+    return template.render(
+        image_height=y_pos(max_step(msg_steps)) + 10,
+        client_lines=[ClientLine(c,
+                                 clients,
+                                 max_step(msg_steps))
+                      for c in clients],
+        msg_lines=[m.get_line(clients) for m in msg_steps])
 
 def max_step(msg_steps):
     return max([m.recvAt for m in msg_steps])

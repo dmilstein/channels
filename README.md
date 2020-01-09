@@ -90,28 +90,32 @@ The messages received by `NextMessages()` are "wrapped" (which is necessary for 
 First, construct one of the versions of the Channels data structures, passing in the set of client process names, and store it in a global variable accessible by all clients:
 
 ```tla
-    INSTANCE ChannelsReliable
+INSTANCE ChannelsReliable
 
-    Clients == {"client1", "client2"}
+Clients == {"client1", "client2"}
 
-    variables
-      Channels = InitChannels(Clients);
+variables
+  Channels = InitChannels(Clients);
 ```
 
 To send a message, update that global Channels variable inside a specific process in the PlusCal algorithm, as so:
 
-    Channels := Send(Channels, self, receiver, msg,
-                     "label for the message",
-                     "label for state of sender at send time")
+```tla
+Channels := Send(Channels, self, receiver, msg,
+                 "label for the message",
+                 "label for state of sender at send time")
+```
 
 To receive and process messages, use the following idiom:
 
-    await HasMessage(Channels, self);
-    with wrapped_msg \in NextMessages(Channels, self) do
-      with msg = Payload(wrapped_msg) do
-        \* process msg
-      end with;
-      Channels := MarkMessageReceived(Channels, self, wrapped_msg, receiverState)
+```tla
+await HasMessage(Channels, self);
+with wrapped_msg \in NextMessages(Channels, self) do
+  with msg = Payload(wrapped_msg) do
+    \* process msg
+  end with;
+  Channels := MarkMessageReceived(Channels, self, wrapped_msg, receiverState)
+```
 
 To construct the svg image on a failed run, capture the state trace in a file. E.g., if using the scripts from [tla-bin](https://github.com/pmer/tla-bin):
 

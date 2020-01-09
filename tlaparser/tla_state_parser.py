@@ -46,24 +46,29 @@ def parse_tla_state(state_str):
                          delimitedList(expr)).setParseAction(
                              lambda toks: frozenset(toks[0]))
 
+    # Functions are complex, because they have 3 forms, all of which can show
+    # up in state traces:
+    #
+    # [ key1 |-> value1, key2 |-> value2, ...]
+    #
+    # key :> value
+    #
+    # func1 @@ func2
     function_member = Group(identifier + Suppress("|->") + expr)
     function_member_list = delimitedList(function_member)
 
-    function = nestedExpr("[", "]",
-                          Dict(function_member_list)).setParseAction(
-                              lambda toks: frozendict(toks[0]))
+    full_function = nestedExpr("[", "]", Dict(function_member_list))
+    full_function.setParseAction(lambda toks: frozendict(toks[0]))
 
-    # Apparently the state traces sometimes use the 'id :> val' form The only
-    # times I've seen it are wrapped in parens, so I'm just going to assume it
-    # always shows up that way, rather than figuring out full rules for
-    # precedence.
-    single_elt_function = (Suppress("(") +
-                           identifier +
-                           Suppress(":>") +
-                           expr +
-                           Suppress(")")).setParseAction(
-                               lambda toks: frozendict([(toks[0], toks[1])]))
+    single_elt_function = identifier + Suppress(":>") + expr
+    single_elt_function.setParseAction(lambda toks: frozendict([(toks[0], toks[1])]))
 
+    function = full_function | single_elt_function
+
+    function_prepend = function + Suppress("@@") + function
+    function_prepend.setParseAction(lambda toks: frozendict(toks[1], **toks[0]))
+
+    parens = Suppress("(") + expr + Suppress(")")
 
     model_value = identifier # hmm, not sure how else to do this
 
@@ -71,9 +76,10 @@ def parse_tla_state(state_str):
              string |
              sequence |
              tla_set |
+             function_prepend |
              function |
-             single_elt_function |
-             model_value)
+             model_value |
+             parens)
 
     # This feels a bit hacky -- rather than expressing the /\'s as
     # delimiters (which they basically are), I'm leaning on the fact

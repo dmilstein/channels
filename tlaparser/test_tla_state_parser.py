@@ -70,6 +70,21 @@ def test_parse_function_with_model_value():
 
 def test_parse_function_in_append_form():
     assert pts(r'/\ x = (y :> 0)') == {'x': frozendict({ 'y': 0 })}
+
+def test_function_prepend_syntax():
+    assert pts(r'/\ x = ([y |-> 0] @@ [z |-> 1])') == {'x': frozendict({ 'y': 0,
+                                                                       'z': 1})}
+    assert pts(r'/\ x = [y |-> 0] @@ [z |-> 1]') == {'x': frozendict({ 'y': 0,
+                                                                       'z': 1})}
+
+    assert pts(r'/\ x = (y :> 2 @@ z :> 3)') == {'x': frozendict({ 'y': 2,
+                                                                   'z': 3})}
+
+    assert pts(r'/\ x = (y :> 4 @@ y :> 5)') == {'x': frozendict({ 'y': 4})}
+
+    # Not 100% sure the below is valid, can't parse it yet, in any event
+    # assert pts(r'/\ x = (y :> 6 @@ y :> 7 @@ y :> 8)') == {'x': frozendict({ 'y': 6})}
+
 def test_parse_sets():
     assert pts(r'/\ x = {}') == { 'x': frozenset()}
     assert pts(r'/\ x = {1}') == { 'x': frozenset([1])}

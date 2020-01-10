@@ -122,9 +122,18 @@ with wrapped_msg \in NextMessages(Channels, self) do
   Channels := MarkMessageReceived(Channels, self, wrapped_msg, receiverState)
 ```
 
-To construct the svg image on a failed run, capture the state trace in a file. E.g., if using the scripts from [tla-bin](https://github.com/pmer/tla-bin):
+### Rendering the Timelines
+
+The python script requires python 3.5+. Install the various required modules:
+
+    > pip install -r requirements.txt
+
+Then, to construct the svg image on a failed run, you'll need to capture the state trace in a file. E.g., if using the scripts from [tla-bin](https://github.com/pmer/tla-bin):
 
     > tlc SomeSpec.tla > SomeSpec.out
+
+And then just run the render script and capture the output:
+
     > ./render_timeline.py SomeSpec.out > SomeSpec.svg
 
 (If you want to see a timeline diagram for a "successful" run, it's generally straightforward to set up a failing Invariant or Property, so that you'll produce a state trace to render.)

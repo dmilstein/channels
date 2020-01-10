@@ -43,6 +43,21 @@
   
 
   
+  <line x1="250" y1="75" x2="50" y2="130"
+        marker-end="url(#arrow)" ></line>
+
+  <text x="45" y="130" class="state-label"
+        text-anchor="end">1</text>
+
+  <text x="255" y="75" class="state-label"
+        text-anchor="start">1</text>
+
+    <path id="line-0" d="M 50,130 L 250,75"/>
+    <text>
+      <textPath href='#line-0' class="msg-label" startOffset="65%">1</textPath>
+    </text>
+
+  
   <line x1="50" y1="185" x2="250" y2="240"
         marker-end="url(#arrow)" ></line>
 
@@ -52,22 +67,7 @@
   <text x="255" y="240" class="state-label"
         text-anchor="start">2</text>
 
-    <path id="line-0" d="M 50,185 L 250,240"/>
-    <text>
-      <textPath href='#line-0' class="msg-label" startOffset="15%">1</textPath>
-    </text>
-
-  
-  <line x1="50" y1="350" x2="250" y2="460"
-        marker-end="url(#arrow)" ></line>
-
-  <text x="45" y="350" class="state-label"
-        text-anchor="end">3</text>
-
-  <text x="255" y="460" class="state-label"
-        text-anchor="start">4</text>
-
-    <path id="line-1" d="M 50,350 L 250,460"/>
+    <path id="line-1" d="M 50,185 L 250,240"/>
     <text>
       <textPath href='#line-1' class="msg-label" startOffset="15%">1</textPath>
     </text>
@@ -88,18 +88,18 @@
     </text>
 
   
-  <line x1="250" y1="75" x2="50" y2="130"
+  <line x1="50" y1="350" x2="250" y2="460"
         marker-end="url(#arrow)" ></line>
 
-  <text x="45" y="130" class="state-label"
-        text-anchor="end">1</text>
+  <text x="45" y="350" class="state-label"
+        text-anchor="end">3</text>
 
-  <text x="255" y="75" class="state-label"
-        text-anchor="start">1</text>
+  <text x="255" y="460" class="state-label"
+        text-anchor="start">4</text>
 
-    <path id="line-3" d="M 50,130 L 250,75"/>
+    <path id="line-3" d="M 50,350 L 250,460"/>
     <text>
-      <textPath href='#line-3' class="msg-label" startOffset="65%">1</textPath>
+      <textPath href='#line-3' class="msg-label" startOffset="15%">1</textPath>
     </text>
 
   

@@ -1,10 +1,14 @@
 ## Introduction
 
-The Channels data structures provide message-passing implementations with two goals - first, to make it easy for TLA spec writers to model distributed systems with various kinds of message passing guarantees; second, to make it possible to create visualizations of message-passing flows.
+The Channels data structures provide message-passing implementations with two goals - first, to make it easy for TLA spec writers to model distributed systems with various kinds of message passing guarantees; second, to make it possible to create *visualizations of message-passing flows*.
 
 As an example, the below specifies a set of PlusCal processes which implement a distributed counter, which can be incremented or decremented:
 
 ```tla
+(*--algorithm two_client_inc_dec
+variables
+  C = InitChannels(Clients);
+
 fair process client \in Clients
   variables
     MsgsSent = 0,
@@ -44,11 +48,11 @@ To view the timeline of how that can happen, run `render_timeline.py` on a faile
     > tlc SomeSpec.tla > SomeSpec.out
     > ./render_timeline.py SomeSpec.out > SomeSpec.svg
 
-For the above, this gives this timeline:
+For the above, with an Invariant specifying no clients copy of the global counter ever goes negative, this gives this timeline:
 
 ![Counter: Two Clients, Inc/Dec](examples/images/two_client_inc_dec.svg)
 
-The dashed line which represents a message which has been sent but not yet received.
+The dashed line represents a message which has been sent but not yet received.
 
 
 ## Details
@@ -79,7 +83,7 @@ The key operators that work on Channels are:
  choose one of these messages, non-deterministically, see example below.
 
  - `MarkMessageReceived(channels, receiver, msg, receiverState)` - update
- channels to show a specific (wrapped) message was received, passing in a `receiverState` to annotate the timeline diagram. Note that the client process should always call this, after receiving a message. Specifically, even if you wish to see duplicates, you should still call `MarkMessageReceived` -- the Channels data structure will take care of ensuring that the proper number of duplicates are still generated.
+ channels to show a specific (wrapped) message was received, passing in a `receiverState` to annotate the timeline diagram. Note that the client process should always call this, after receiving a message. Specifically, even if you wish to see duplicates, you should still call `MarkMessageReceived` -- the Channels data structure will take care of ensuring that the proper number of duplicates are delivered.
 
 The messages received by `NextMessages()` are "wrapped" (which is necessary for `MarkMessageReceived()` to function). To obtain an underlying message inside a receive loop, call:
 
@@ -128,7 +132,7 @@ To construct the svg image on a failed run, capture the state trace in a file. E
 
 In the `examples/` directory is a series of specs modeling a distributed counter, using various forms of the Channels.
 
-The general set up is: multiple peer clients, each of which is tracking a local copy of an overall, globally shared counter value. Local requests to increment the counter can arrive at any client, which will increment its own value and then attempt to communicate the increment to the other clients.
+The general set up is: multiple peer clients, each of which is tracking a local copy of a globally shared counter value. Local requests to increment the counter can arrive at any client, which will increment its own value and then attempt to communicate the increment to the other clients.
 
 In most cases, the examples just use a pair of clients.
 

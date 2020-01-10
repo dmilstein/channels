@@ -1,4 +1,4 @@
-from frozendict import frozendict
+from immutables import Map
 
 from .tla_state_parser import parse_tla_state
 
@@ -57,40 +57,40 @@ def test_parse_functions():
     a_parsed_func = pts(r'/\ x = [y |-> 0]')['x']
     s = set([a_parsed_func])
     assert a_parsed_func in s
-    assert pts(r'/\ x = [y |-> 0]') == {'x': frozendict({ 'y': 0 })}
-    assert pts(r'/\ x = [y |-> "abc"]') == {'x': frozendict({ 'y': "abc" })}
-    assert pts(r'/\ x = [y |-> "ab c"]') == { 'x': frozendict({ 'y': "ab c" })}
-    assert pts(r'/\ x = [y |-> 0, z |-> 1]') == { 'x': frozendict({ 'y': 0, 'z': 1 })}
-    assert pts(r'/\ x = []') == { 'x': frozendict({})}
+    assert pts(r'/\ x = [y |-> 0]') == {'x': Map({ 'y': 0 })}
+    assert pts(r'/\ x = [y |-> "abc"]') == {'x': Map({ 'y': "abc" })}
+    assert pts(r'/\ x = [y |-> "ab c"]') == { 'x': Map({ 'y': "ab c" })}
+    assert pts(r'/\ x = [y |-> 0, z |-> 1]') == { 'x': Map({ 'y': 0, 'z': 1 })}
+    assert pts(r'/\ x = []') == { 'x': Map({})}
 
 def test_parse_function_with_model_value():
     assert pts(r'/\ x = [y |-> a_model_value]') == {'x':
-                                                    frozendict({ 'y':
-                                                                 'a_model_value' })}
+                                                    Map({ 'y':
+                                                          'a_model_value' })}
 
 def test_parse_function_in_append_form():
-    assert pts(r'/\ x = (y :> 0)') == {'x': frozendict({ 'y': 0 })}
+    assert pts(r'/\ x = (y :> 0)') == {'x': Map({ 'y': 0 })}
 
 def test_function_prepend_syntax():
-    assert pts(r'/\ x = ([y |-> 0] @@ [z |-> 1])') == {'x': frozendict({ 'y': 0,
-                                                                       'z': 1})}
-    assert pts(r'/\ x = [y |-> 0] @@ [z |-> 1]') == {'x': frozendict({ 'y': 0,
-                                                                       'z': 1})}
+    assert pts(r'/\ x = ([y |-> 0] @@ [z |-> 1])') == {'x': Map({ 'y': 0,
+                                                                  'z': 1})}
+    assert pts(r'/\ x = [y |-> 0] @@ [z |-> 1]') == {'x': Map({ 'y': 0,
+                                                                'z': 1})}
 
-    assert pts(r'/\ x = (y :> 2 @@ z :> 3)') == {'x': frozendict({ 'y': 2,
-                                                                   'z': 3})}
+    assert pts(r'/\ x = (y :> 2 @@ z :> 3)') == {'x': Map({ 'y': 2,
+                                                            'z': 3})}
 
-    assert pts(r'/\ x = (y :> 4 @@ y :> 5)') == {'x': frozendict({ 'y': 4})}
+    assert pts(r'/\ x = (y :> 4 @@ y :> 5)') == {'x': Map({ 'y': 4})}
 
     # Not 100% sure the below is valid, can't parse it yet, in any event
-    # assert pts(r'/\ x = (y :> 6 @@ y :> 7 @@ y :> 8)') == {'x': frozendict({ 'y': 6})}
+    # assert pts(r'/\ x = (y :> 6 @@ y :> 7 @@ y :> 8)') == {'x': Map({ 'y': 6})}
 
 def test_parse_sets():
     assert pts(r'/\ x = {}') == { 'x': frozenset()}
     assert pts(r'/\ x = {1}') == { 'x': frozenset([1])}
     assert pts(r'/\ x = {1, 2}') == { 'x': frozenset([1, 2])}
     assert pts(r'/\ x = {1, {2}}') == { 'x': frozenset([1, frozenset([2])])}
-    assert pts(r'/\ x = { [y |-> 1] }') == { 'x': frozenset([frozendict({'y': 1})])}
+    assert pts(r'/\ x = { [y |-> 1] }') == { 'x': frozenset([Map({'y': 1})])}
 
 def test_parse_identifier_names():
     assert pts(r'/\ x1 = 1') == { 'x1': 1 }
@@ -115,8 +115,8 @@ def test_parse_multiple_variables():
 
     assert pts(four_vars) == { 'x': 2,
                                'y': 3,
-                               'z': {'a': 'b'},
-                               'w': {'a': (1, 2)}}
+                               'z': Map({'a': 'b'}),
+                               'w': Map({'a': (1, 2)})}
 
 def test_embedded_dict():
     tla = r'''
@@ -126,6 +126,6 @@ def test_embedded_dict():
   NextMsgId |-> 0 ]
 '''
     assert pts(tla) == {
-        'x': frozendict({'MsgSteps': set([frozendict({'sender': "client1",
-                                                      'receiver': "client2"})]),
-                         'NextMsgId': 0})}
+        'x': Map({'MsgSteps': set([Map({'sender': "client1",
+                                        'receiver': "client2"})]),
+                  'NextMsgId': 0})}

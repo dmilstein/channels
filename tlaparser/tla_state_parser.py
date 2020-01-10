@@ -3,7 +3,7 @@ Library to parse TLA+ states, as output by TLC when it finds violations of
 invariants or properties.
 """
 
-from frozendict import frozendict
+from immutables import Map
 
 from pyparsing import *
 
@@ -20,7 +20,7 @@ def parse_tla_state(state_str):
       - ints -> ints
       - strings -> strings
       - sequences -> tuples (*not* lists)
-      - functions -> frozendicts
+      - functions -> immutables.Map's
       - sets -> frozensets
       - model values -> strings (not sure what else to parse them as)
 
@@ -58,15 +58,15 @@ def parse_tla_state(state_str):
     function_member_list = delimitedList(function_member)
 
     full_function = nestedExpr("[", "]", Dict(function_member_list))
-    full_function.setParseAction(lambda toks: frozendict(toks[0]))
+    full_function.setParseAction(lambda toks: Map(toks[0]))
 
     single_elt_function = identifier + Suppress(":>") + expr
-    single_elt_function.setParseAction(lambda toks: frozendict([(toks[0], toks[1])]))
+    single_elt_function.setParseAction(lambda toks: Map([(toks[0], toks[1])]))
 
     function = full_function | single_elt_function
 
     function_prepend = function + Suppress("@@") + function
-    function_prepend.setParseAction(lambda toks: frozendict(toks[1], **toks[0]))
+    function_prepend.setParseAction(lambda toks: Map(toks[1], **toks[0]))
 
     parens = Suppress("(") + expr + Suppress(")")
 

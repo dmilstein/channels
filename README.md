@@ -54,6 +54,7 @@ For the above, with an Invariant specifying no clients copy of the global counte
 
 The dashed line represents a message which has been sent but not yet received.
 
+(Note: GitHub's README rendering runs SVG's through a [sanitizer](https://github.com/github/markup/issues/556), which [rewrites the SVG](https://github.com/github/markup/issues/1160) and is apparently subtly breaking the placement of the text labels on message lines (the `Msg: 1`'s). If you open the image in a separate tab, you can see the proper placement of the labels.)
 
 ## Details
 
@@ -145,6 +146,8 @@ For the diagrams:
  - The labels on the diagonal arrows specify the message payloads
 
  - Dashed diagonal lines, if present, represent messages sent but not received
+
+(And, as noted above, GitHub's README rendering is breaking the placement of the message labels)
 
 ### `two_client_reliable_channel.pcal`
 

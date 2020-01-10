@@ -1,6 +1,6 @@
 ## Introduction
 
-The Channels data structures provide message-passing implementations with two goals - first, to make it easy for TLA spec writers to model distributed systems with various kinds of message passing guarantees; second, to make it possible to create *visualizations of message-passing flows*.
+The Channels data structures provide message-passing implementations with two goals - first, to make it easy for TLA spec writers to model distributed systems with various kinds of message passing guarantees; second, to make it possible to create **visualizations of message-passing flows**.
 
 As an example, the below specifies a set of PlusCal processes which implement a distributed counter, which can be incremented or decremented:
 
@@ -192,3 +192,11 @@ Now, if we switch the above code to the at-least-once channel implementation, we
 The svg rendering will work for more than two clients, though the diagrams can get a bit harder to read, naturally:
 
 ![Counter: Three Clients](examples/images/three_client_counter.svg)
+
+## Thanks
+
+ - [Hillel Wayne](https://www.hillelwayne.com/), whose [Practical TLA+](https://www.apress.com/gp/book/9781484238288) got me started on learning TLA+
+
+ - [Marianne Bellotti](https://medium.com/@bellmar), whose [Introduction to TLA+ Model Checking in the Command Line](https://medium.com/@bellmar/introduction-to-tla-model-checking-in-the-command-line-c6871700a6a2) got me started on actually running TLC.
+
+ - GitHub user [will62794](https://github.com/will62794), whose [TLA+ Animation Module](https://github.com/will62794/tlaplus_animation) was a source of inspiration (though I ultimately found it a lot easier to do the SVG string consruction and manipulation in python, rather than purely in TLA+).

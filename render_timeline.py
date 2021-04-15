@@ -112,7 +112,7 @@ def render_msg_steps(msg_steps, clients):
 def max_step(msg_steps):
     return max([m.recvAt for m in msg_steps])
 
-state_re = re.compile(r'State \d+:.*?\n(.+?)\n\n', re.DOTALL)
+state_re = re.compile(r'\d+: <.*?>\n(.+?)\n\n', re.DOTALL)
 
 def parse_states(tlc_output):
     """
